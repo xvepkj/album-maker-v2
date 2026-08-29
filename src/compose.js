@@ -10,6 +10,7 @@ import sharp from 'sharp';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { computeCrop, aspectFit } from './crop.js';
+import { applyLook } from './filters.js';
 
 sharp.cache(false);              // predictable memory for measurement
 // Measured: threads beyond 4 add ~40 MB of tile buffers for no speed gain on a
@@ -17,19 +18,18 @@ sharp.cache(false);              // predictable memory for measurement
 sharp.concurrency(4);
 
 /** Render one slot to an RGBA raw buffer at final print resolution. */
-export async function renderSlot(geo, slot, photo) {
+export async function renderSlot(geo, slot, photo, { look = 'none' } = {}) {
   const img = sharp(photo.file, { limitInputPixels: 512 * 1024 * 1024 });
   const meta = await img.metadata();
   const src = { width: meta.width, height: meta.height };
 
   const crop = computeCrop(src, slot, photo.focus, geo.gutter);
 
-  const data = await img
-    .extract(crop.extract)
-    .resize(slot.rect.width, slot.rect.height, { fit: 'fill', kernel: 'lanczos3' })
-    .ensureAlpha()
-    .raw()
-    .toBuffer();
+  const data = await applyLook(
+    img.extract(crop.extract)
+       .resize(slot.rect.width, slot.rect.height, { fit: 'fill', kernel: 'lanczos3' }),
+    look,
+  ).ensureAlpha().raw().toBuffer();
 
   return {
     name: `${slot.id} · ${path.basename(photo.file)}`,
@@ -61,11 +61,11 @@ export function backgroundRef(geo) {
 }
 
 /** Materialise the background as a real raw layer. Only the PSD path needs this. */
-export async function renderBackground(geo, ref = backgroundRef(geo)) {
+export async function renderBackground(geo, ref = backgroundRef(geo), { look = 'none' } = {}) {
   const { width, height } = ref;
   const data = ref.kind === 'file'
-    ? await sharp(ref.file, { limitInputPixels: 512 * 1024 * 1024 })
-        .resize(width, height, { fit: 'cover', position: 'centre' })
+    ? await applyLook(sharp(ref.file, { limitInputPixels: 512 * 1024 * 1024 })
+        .resize(width, height, { fit: 'cover', position: 'centre' }), look)
         .ensureAlpha().raw().toBuffer()
     : await sharp({ create: { width, height, channels: 4, background: ref.colour } })
         .raw().toBuffer();
@@ -94,15 +94,15 @@ const asComposite = (l) => ({
 });
 
 /** Open the background as a sharp pipeline sized to the canvas. */
-const bgPipeline = (ref) =>
+const bgPipeline = (ref, look = 'none') =>
   ref.kind === 'file'
-    ? sharp(ref.file, { limitInputPixels: 512 * 1024 * 1024 })
-        .resize(ref.width, ref.height, { fit: 'cover', position: 'centre' })
+    ? applyLook(sharp(ref.file, { limitInputPixels: 512 * 1024 * 1024 })
+        .resize(ref.width, ref.height, { fit: 'cover', position: 'centre' }), look)
     : sharp({ create: { width: ref.width, height: ref.height, channels: 4, background: ref.colour } });
 
 /** Flatten the stack onto the streamed background and write a print-ready file. */
-export async function flatten(geo, bgRef, layers, outFile, { quality = 92, mozjpeg = false } = {}) {
-  const pipe = bgPipeline(bgRef)
+export async function flatten(geo, bgRef, layers, outFile, { quality = 92, mozjpeg = false, look = 'none' } = {}) {
+  const pipe = bgPipeline(bgRef, look)
     .composite(layers.map(asComposite))
     .withMetadata({ density: geo.dpi });
 

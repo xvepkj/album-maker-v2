@@ -46,30 +46,45 @@ function score(photo, slot) {
  * A photo is used at most once across the whole album, and a spread is only
  * emitted if every slot can be filled with a distinct photo.
  *
- * @returns spreads: [{ index, picks: [{ slotId, photo }] }]
+ * @param geos  one resolved template, or several to vary between
+ * @returns spreads: [{ index, templateId, picks: [{ slotId, photo }] }]
  */
-export function planAlbum(geo, photos, { maxSpreads = 0, allowReuse = false } = {}) {
-  const k = geo.slots.length;
-  // Never emit a spread we cannot fill with distinct photos.
-  let total = Math.floor(photos.length / k);
-  if (total === 0) total = photos.length ? 1 : 0;
-  if (maxSpreads > 0) total = Math.min(maxSpreads, total);
-
-  const usedAlbum = new Set();          // a photo appears once per album
+export function planAlbum(geos, photos, { maxSpreads = 0, vary = false } = {}) {
+  const list = Array.isArray(geos) ? geos : [geos];
+  const usedAlbum = new Set();
   const spreads = [];
+  let cursor = 0;
+  let lastId = null;
 
-  for (let i = 0; i < total; i++) {
-    // Candidate window: this spread's chunk, widened so there is real choice.
-    const pool = photos.slice(i * k, i * k + k * 2)
-      .filter((p) => allowReuse || !usedAlbum.has(p.file));
-    if (pool.length < k && !allowReuse) {
-      // Top up from anything still unused, keeping album order roughly intact.
-      for (const p of photos) {
-        if (pool.length >= k) break;
-        if (!usedAlbum.has(p.file) && !pool.includes(p)) pool.push(p);
-      }
+  const remaining = () => photos.length - cursor;
+
+  /**
+   * Pick the layout for the next spread. When varying, avoid repeating the
+   * previous layout — three identical spreads in a row is the single clearest
+   * tell that an album was machine-made.
+   */
+  function pick() {
+    const fits = list.filter((g) => g.slots.length <= remaining());
+    if (!fits.length) return null;
+    if (!vary || fits.length === 1) return fits[0];
+    const fresh = fits.filter((g) => g.id !== lastId);
+    const pool = fresh.length ? fresh : fits;
+    return pool[spreads.length % pool.length];
+  }
+
+  while (remaining() > 0) {
+    if (maxSpreads > 0 && spreads.length >= maxSpreads) break;
+    const geo = pick();
+    if (!geo) break;
+    const k = geo.slots.length;
+
+    // Candidate window, widened so the scorer has real choice.
+    const pool = photos.slice(cursor, cursor + k * 2).filter((p) => !usedAlbum.has(p.file));
+    for (const p of photos) {
+      if (pool.length >= k) break;
+      if (!usedAlbum.has(p.file) && !pool.includes(p)) pool.push(p);
     }
-    if (!pool.length) break;
+    if (pool.length < k) break;
 
     const used = new Set();
     const picks = [];
@@ -81,14 +96,16 @@ export function planAlbum(geo, photos, { maxSpreads = 0, allowReuse = false } = 
         const sc = score(p, slot);
         if (sc > bestScore) { bestScore = sc; best = p; }
       }
-      if (!best) { short = true; break; }   // ran out of distinct photos
+      if (!best) { short = true; break; }
       used.add(best.file);
       picks.push({ slotId: slot.id, photo: best });
     }
     if (short) break;
 
     for (const f of used) usedAlbum.add(f);
-    spreads.push({ index: spreads.length, picks });
+    spreads.push({ index: spreads.length, templateId: geo.id, picks });
+    lastId = geo.id;
+    cursor += k;
   }
   return spreads;
 }

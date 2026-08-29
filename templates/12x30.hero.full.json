@@ -1,0 +1,31 @@
+{
+  "id": "12x30.hero.full",
+  "label": "Full bleed — one photo across the spread",
+  "album": "12x30",
+  "slotCount": 1,
+  "size": {
+    "w_in": 30,
+    "h_in": 12,
+    "dpi": 300,
+    "bleed_in": 0.125,
+    "safe_in": 0.25
+  },
+  "gutter": {
+    "center": 0.5,
+    "width_in": 0.86
+  },
+  "slots": [
+    {
+      "id": "a",
+      "rect": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "weight": "hero"
+    }
+  ],
+  "background": "assets/bg-linen.jpg",
+  "overlays": []
+}

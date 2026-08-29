@@ -11,7 +11,10 @@
 
 <header class="titlebar">
   <div class="brand">Spread&nbsp;Engine <span class="phase">Phase 00 · render spike</span></div>
-  <div id="status" class="status">idle</div>
+  <div class="rightbar">
+    <div id="status" class="status">idle</div>
+    <button id="helpBtn" class="help" data-tip="What all this means — trim, bleed, the fold, slots.<b>?</b>">?</button>
+  </div>
 </header>
 
 <main>
@@ -19,22 +22,37 @@
     <section class="controls">
       <label class="field">
         <span>Photos</span>
-        <button id="pick" class="picker">
+        <button id="pick" class="picker"
+          data-tip="Pick any folder of JPEG, PNG or TIFF files. They are read in filename order, and each photo is used at most once in the album.<b>click to browse</b>">
           <b id="photoDir">—</b><i id="photoCount"></i>
         </button>
       </label>
 
       <label class="field">
         <span>Template</span>
-        <select id="template"></select>
+        <select id="template"
+          data-tip="The page layout: how many photo slots there are and where they sit. classic.3up puts one big photo on the left page and three on the right. hero.full gives one photo the whole spread, across the fold."></select>
       </label>
 
       <label class="field">
-        <span>Spreads <i id="spreadCountLabel">all</i></span>
-        <input id="maxSpreads" type="range" min="0" max="40" value="0" step="1">
+        <span>Look</span>
+        <select id="look"
+          data-tip="A colour treatment applied to every photo and the page background, so the album reads as one piece. Purely colour — a preview and a print always agree."></select>
       </label>
 
-      <button id="design" class="primary">Design album</button>
+      <label class="checkline" data-tip="Cycle through every layout built for this album size instead of repeating one, never using the same layout twice in a row. Three identical spreads running together is the clearest tell that an album was machine-made.">
+        <input type="checkbox" id="vary" checked>
+        <span>Vary layouts across the album</span>
+      </label>
+
+      <label class="field">
+        <span>How many spreads <i id="spreadCountLabel">all</i></span>
+        <input id="maxSpreads" type="range" min="0" max="40" value="0" step="1"
+          data-tip="Cap the album length. Leave at ALL to use every photo. Handy for a quick look without rendering the whole set.">
+      </label>
+
+      <button id="design" class="primary"
+        data-tip="Lay out the photos and render every spread at full print resolution — 10876 × 3676 px. About one second per spread.<b>the main action</b>">Design album</button>
       <div id="progress" class="progress"><div id="bar"></div></div>
     </section>
 
@@ -45,17 +63,21 @@
   <section class="viewer">
     <div class="toolbar">
       <div class="toggles">
-        <label><input type="checkbox" id="gTrim" checked> Trim &amp; bleed</label>
-        <label><input type="checkbox" id="gFold" checked> Fold</label>
-        <label><input type="checkbox" id="gSlots"> Slots</label>
+        <span class="tglabel">Guides</span>
+        <label data-tip="TRIM is the finished page — where the guillotine cuts. BLEED is the 38px margin outside it that gets sliced off, so a slightly crooked cut never leaves a white sliver at the edge."><input type="checkbox" id="gTrim" checked> Trim &amp; bleed</label>
+        <label data-tip="The FOLD is the crease where the album is bound. Anything here is swallowed by the binding. The engine slides a crop, and punches in up to 18%, to walk faces out of this band."><input type="checkbox" id="gFold" checked> Fold</label>
+        <label data-tip="SLOTS are the photo rectangles this template defines. Turn on to check the render matches the layout the template asked for."><input type="checkbox" id="gSlots"> Slots</label>
       </div>
       <div class="actions">
-        <button id="exportPsd" disabled>Export PSD</button>
+        <span class="tglabel">Export</span>
+        <button id="exportPsd" disabled
+          data-tip="Layered Photoshop file for the selected spread: one layer per photo, plus guides on the trim and fold. Keeps the bleed, for a designer to finish by hand.<b>~100 MB per spread</b>">PSD</button>
+        <button id="mkProof" disabled
+          data-tip="ONE self-contained HTML file with every spread inside it. Email it to the couple — it opens on any phone with no app, no server and no internet. Trim-cropped, so they see the album as it will exist.<b>the thing you send clients</b>">Client proof</button>
+        <button id="mkPdf" disabled
+          data-tip="Every spread, one per page, at the album's true physical size (36 × 12 in). Trim-cropped. Good for review or for a lab that wants PDF.">PDF</button>
         <span class="sep"></span>
-        <button id="mkProof" disabled title="One self-contained HTML file — email it to the couple">Client proof</button>
-        <button id="mkPdf" disabled title="One spread per page at true album size">PDF</button>
-        <span class="sep"></span>
-        <button id="reveal" disabled>Reveal</button>
+        <button id="reveal" disabled data-tip="Show the selected spread's files in Finder.">Reveal</button>
       </div>
     </div>
 
@@ -63,6 +85,7 @@
       <div id="empty" class="empty">
         <p>Choose a folder of photos and press <b>Design album</b>.</p>
         <p class="dim">Spreads render at full print resolution — 10876&nbsp;×&nbsp;3676&nbsp;px at 300&nbsp;dpi — and preview here at 1400&nbsp;px.</p>
+        <p class="dim">New to the terminology? Press <b>?</b> for a walkthrough.</p>
       </div>
       <figure id="canvasWrap" class="canvaswrap" hidden>
         <img id="preview" alt="Selected spread">
@@ -72,9 +95,16 @@
 
     <div class="panels">
       <div class="panel">
-        <h2>Crop decisions</h2>
+        <h2>Crop decisions <i>why each photo looks the way it does</i></h2>
         <table class="slots">
-          <thead><tr><th>Slot</th><th>Photo</th><th>Fit</th><th>Discarded</th><th>Zoom</th><th>Fold</th></tr></thead>
+          <thead><tr>
+            <th data-tip="Which rectangle in the template this row describes.">Slot</th>
+            <th data-tip="The photo the planner chose for this slot.">Photo</th>
+            <th data-tip="How well the photo's shape matches the slot's shape. 1.000 is a perfect match; lower means more of the photo had to be cut away to fill the slot.">Fit</th>
+            <th data-tip="How much of the original frame was thrown away by the crop. High numbers mean a portrait was forced into a wide slot, or similar — usually a sign the planner should have picked a different photo.">Discarded</th>
+            <th data-tip="How far the engine punched in beyond the necessary crop. Only ever non-zero when it had to create slack to move a subject off the fold. Capped at 18%.">Zoom</th>
+            <th data-tip="n/a — this slot does not touch the fold. clear — the subject already misses it. moved — the subject was over the fold and the crop was shifted to clear it. unresolved — this photo cannot work in this slot; swap it.">Fold</th>
+          </tr></thead>
           <tbody id="slotRows"><tr class="none"><td colspan="6">No spread selected.</td></tr></tbody>
         </table>
       </div>
@@ -91,6 +121,52 @@
   <span id="outDir" class="dim"></span>
 </footer>
 
+<div id="helpOverlay" class="overlaypane" hidden>
+  <div class="sheet">
+    <button id="helpClose" class="close" aria-label="Close">×</button>
+    <h2>Anatomy of a spread</h2>
+    <p class="sub">A spread is two facing pages. Three things make it different from an ordinary image.</p>
+
+    <svg viewBox="0 0 720 262" role="img" aria-label="Diagram of a spread showing the bleed outside the trim, the safe area inside it, the central fold, and four photo slots.">
+      <rect x="14" y="16" width="692" height="196" fill="none" stroke="#5c5468" stroke-dasharray="4 4"/>
+      <text x="14" y="10" font-size="10" fill="#8b8395" font-family="ui-monospace,monospace">bleed — 38 px, cut off</text>
+      <rect x="30" y="32" width="660" height="164" fill="#241f2a" stroke="#b1a9ba"/>
+      <text x="694" y="26" font-size="10" fill="#b1a9ba" text-anchor="end" font-family="ui-monospace,monospace">trim — the finished page</text>
+      <rect x="46" y="48" width="628" height="132" fill="none" stroke="#5c5468" stroke-dasharray="2 4"/>
+      <rect x="348" y="32" width="24" height="164" fill="#ff63ac" opacity=".28"/>
+      <line x1="360" y1="32" x2="360" y2="196" stroke="#ff63ac" stroke-dasharray="5 4"/>
+      <text x="360" y="232" font-size="10" fill="#ff63ac" text-anchor="middle" font-family="ui-monospace,monospace">fold — binding eats this</text>
+      <rect x="50" y="52" width="286" height="124" fill="#332c3a" stroke="#4fd0e6"/>
+      <text x="58" y="66" font-size="9" fill="#4fd0e6" font-family="ui-monospace,monospace">slot a</text>
+      <rect x="384" y="52" width="136" height="58" fill="#332c3a" stroke="#4fd0e6"/>
+      <text x="392" y="66" font-size="9" fill="#4fd0e6" font-family="ui-monospace,monospace">slot b</text>
+      <rect x="384" y="118" width="136" height="58" fill="#332c3a" stroke="#4fd0e6"/>
+      <text x="392" y="132" font-size="9" fill="#4fd0e6" font-family="ui-monospace,monospace">slot c</text>
+      <rect x="534" y="52" width="136" height="124" fill="#332c3a" stroke="#4fd0e6"/>
+      <text x="542" y="66" font-size="9" fill="#4fd0e6" font-family="ui-monospace,monospace">slot d</text>
+      <text x="46" y="256" font-size="10" fill="#6f6879" font-family="ui-monospace,monospace">36 × 12 in @ 300 dpi = 10800 × 3600 px trim, 10876 × 3676 px rendered</text>
+    </svg>
+
+    <dl class="gloss">
+      <dt>Trim</dt><dd>The finished page size — where the blade cuts. 10800 × 3600 px here.</dd>
+      <dt>Bleed</dt><dd>38 px of extra image outside the trim, deliberately sacrificial. The cut drifts about a millimetre; without bleed that drift leaves a white sliver down the page edge. Client exports remove it; lab exports keep it.</dd>
+      <dt>Safe area</dt><dd>Keep faces and text inside this. Anything close to the trim risks being clipped.</dd>
+      <dt>Fold</dt><dd>The crease where the album is bound — 282 px wide. A face landing here is swallowed by the binding. The engine slides the crop, and punches in up to 18%, to walk subjects out of it.</dd>
+      <dt>Slot</dt><dd>A photo rectangle defined by the template, stored as fractions so one template works at any album size.</dd>
+    </dl>
+
+    <h3>What comes out</h3>
+    <dl class="gloss">
+      <dt>Client proof</dt><dd>One HTML file with every spread inside it. Email it — it opens on any phone, no internet needed. <b>This is what you send the couple.</b></dd>
+      <dt>PDF</dt><dd>One spread per page at true album size. For review, or a lab that asks for PDF.</dd>
+      <dt>PSD</dt><dd>Layered Photoshop file with guides on the trim and fold, for a designer to finish by hand.</dd>
+      <dt>Spread JPEGs</dt><dd>Written automatically into the output folder at full resolution with bleed — what the printer wants.</dd>
+    </dl>
+    <p class="sub">Press <b>?</b> any time, or <b>Esc</b> to close. Arrow keys move between spreads.</p>
+  </div>
+</div>
+
+<div id="tip" class="tip" hidden></div>
 <script src="app.js"></script>
 </body>
 </html>

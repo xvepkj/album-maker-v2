@@ -1,0 +1,85 @@
+{
+  "id": "12x18.grid.6",
+  "label": "Six up — three per page",
+  "album": "12x18",
+  "slotCount": 6,
+  "size": {
+    "w_in": 18,
+    "h_in": 12,
+    "dpi": 300,
+    "bleed_in": 0.125,
+    "safe_in": 0.25
+  },
+  "gutter": {
+    "center": 0.5,
+    "width_in": 0.62
+  },
+  "slots": [
+    {
+      "id": "a",
+      "rect": [
+        0.055,
+        0.055,
+        0.1799,
+        0.4275
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    },
+    {
+      "id": "b",
+      "rect": [
+        0.2699,
+        0.055,
+        0.1799,
+        0.4275
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    },
+    {
+      "id": "c",
+      "rect": [
+        0.055,
+        0.5175,
+        0.3948,
+        0.4275
+      ],
+      "weight": "hero"
+    },
+    {
+      "id": "d",
+      "rect": [
+        0.5502,
+        0.055,
+        0.3948,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "e",
+      "rect": [
+        0.5502,
+        0.5175,
+        0.1799,
+        0.4275
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    },
+    {
+      "id": "f",
+      "rect": [
+        0.7651,
+        0.5175,
+        0.1799,
+        0.4275
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    }
+  ],
+  "background": "assets/bg-linen.jpg",
+  "overlays": []
+}

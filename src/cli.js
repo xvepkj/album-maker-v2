@@ -2,7 +2,7 @@
 /**
  * Phase 00 render spike.
  *
- *   node src/cli.js --template templates/spread.classic.3up.json \
+ *   node src/cli.js --template templates/12x36.classic.3up.json \
  *                   --photos samples --out out
  *
  * Answers one question: can a JavaScript stack write a correct print-resolution
@@ -26,7 +26,7 @@ const flag = (n, d = null) => {
 const has = (n) => argv.includes(`--${n}`);
 
 const opts = {
-  template: flag('template', 'templates/spread.classic.3up.json'),
+  template: flag('template', 'templates/12x36.classic.3up.json'),
   photos:   flag('photos', 'samples'),
   out:      flag('out', 'out'),
   format:   flag('format', 'jpg'),

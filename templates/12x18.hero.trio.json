@@ -1,0 +1,65 @@
+{
+  "id": "12x18.hero.trio",
+  "label": "Hero left, three right",
+  "album": "12x18",
+  "slotCount": 4,
+  "size": {
+    "w_in": 18,
+    "h_in": 12,
+    "dpi": 300,
+    "bleed_in": 0.125,
+    "safe_in": 0.25
+  },
+  "gutter": {
+    "center": 0.5,
+    "width_in": 0.62
+  },
+  "slots": [
+    {
+      "id": "a",
+      "rect": [
+        0.055,
+        0.055,
+        0.3948,
+        0.89
+      ],
+      "weight": "hero",
+      "prefer": "portrait"
+    },
+    {
+      "id": "b",
+      "rect": [
+        0.5502,
+        0.055,
+        0.3948,
+        0.2733
+      ],
+      "weight": "support",
+      "prefer": "landscape"
+    },
+    {
+      "id": "c",
+      "rect": [
+        0.5502,
+        0.3633,
+        0.3948,
+        0.2733
+      ],
+      "weight": "support",
+      "prefer": "landscape"
+    },
+    {
+      "id": "d",
+      "rect": [
+        0.5502,
+        0.6717,
+        0.3948,
+        0.2733
+      ],
+      "weight": "support",
+      "prefer": "landscape"
+    }
+  ],
+  "background": "assets/bg-linen.jpg",
+  "overlays": []
+}

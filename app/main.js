@@ -11,7 +11,7 @@ import { spawn } from 'node:child_process';
 import { readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import readline from 'node:readline';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -81,22 +81,37 @@ async function runSelfTest() {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   await new Promise((r) => win.webContents.once('did-finish-load', r));
-  await wait(600);
+  await wait(900);
+
+  // The walkthrough auto-opens on a first run — capture it, then dismiss.
+  const helpOpen = await win.webContents.executeJavaScript(
+    "!document.getElementById('helpOverlay').hidden");
+  if (helpOpen) {
+    await writeFile(shot.replace(/\.png$/, '-help.png'),
+      (await win.webContents.capturePage()).toPNG());
+  }
+  // Dismiss unconditionally — it may open after the probe above.
+  await win.webContents.executeJavaScript(
+    "document.getElementById('helpOverlay').hidden = true");
+  await wait(300);
 
   const done = new Promise((resolve) => {
     const onLine = (payload) => { if (payload.type === 'done' || payload.type === 'error') resolve(payload); };
     selfTestHooks.push(onLine);
   });
 
-  sendJob({
-    cmd: 'design',
-    template: path.join(ROOT, 'templates', 'spread.classic.3up.json'),
-    photosDir: process.env.SPREAD_SELFTEST_PHOTOS || path.join(ROOT, 'samples'),
-    outDir: path.join(ROOT, 'out', 'app'),
-    maxSpreads: 6,
-  });
+  // Drive the real UI rather than injecting a job, so the selftest exercises
+  // the same path a user does — template choice, look and vary toggle included.
+  await win.webContents.executeJavaScript(`(() => {
+    const m = document.getElementById('maxSpreads');
+    m.value = '6'; m.dispatchEvent(new Event('input'));
+    document.getElementById('design').click();
+  })()`);
 
   const result = await done;
+  if (result.type === 'error') { console.log('SELFTEST-ERROR ' + result.message); app.quit(); return; }
+  await win.webContents.executeJavaScript(
+    "document.getElementById('helpOverlay').hidden = true");
   await wait(2200);                        // let the previews decode and paint
   await writeFile(shot, (await win.webContents.capturePage()).toPNG());
 
@@ -156,11 +171,26 @@ ipcMain.handle('defaults', async () => {
   const files = existsSync(samples)
     ? (await readdir(samples)).filter((f) => /\.(jpe?g|png)$/i.test(f)) : [];
   const tdir = path.join(ROOT, 'templates');
-  const templates = (await readdir(tdir)).filter((f) => f.endsWith('.json'))
-    .map((f) => ({ file: path.join(tdir, f), name: f.replace(/\.json$/, '') }));
+  const { readFile } = await import('node:fs/promises');
+  const templates = [];
+  for (const f of (await readdir(tdir)).filter((x) => x.endsWith('.json'))) {
+    try {
+      const t = JSON.parse(await readFile(path.join(tdir, f), 'utf8'));
+      templates.push({
+        file: path.join(tdir, f),
+        id: t.id ?? f.replace(/\.json$/, ''),
+        label: t.label ?? t.id,
+        album: t.album ?? 'other',
+        slots: t.slotCount ?? t.slots?.length ?? 0,
+      });
+    } catch { /* skip malformed */ }
+  }
+  templates.sort((a, b) => a.album.localeCompare(b.album) || a.slots - b.slots);
+
+  const { LOOKS } = await import(pathToFileURL(path.join(ROOT, 'src', 'filters.js')).href);
   return {
     photosDir: samples, photoCount: files.length,
-    outDir: path.join(ROOT, 'out', 'app'), templates,
+    outDir: path.join(ROOT, 'out', 'app'), templates, looks: LOOKS,
   };
 });
 

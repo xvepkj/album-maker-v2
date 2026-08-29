@@ -14,20 +14,21 @@ import { readPhotos, planAlbum } from './album.js';
 import { backgroundRef, renderSlot, renderBackground, flatten, proof } from './compose.js';
 import { writePsd } from './psd.js';
 import { findSpreads, buildProof, buildPdf } from './deliver.js';
+import { LOOKS, isLook } from './filters.js';
 
 const send = (o) => process.stdout.write(JSON.stringify(o) + '\n');
 
 let peakRss = 0;
 setInterval(() => { peakRss = Math.max(peakRss, process.memoryUsage().rss); }, 40).unref();
 
-async function renderOne(geo, bgRef, spread, outDir, { psd = false } = {}) {
+async function renderOne(geo, bgRef, spread, outDir, { psd = false, look = 'none' } = {}) {
   const t = performance.now();
   const layers = [];
   const slotInfo = [];
 
   for (const pick of spread.picks) {
     const slot = geo.slots.find((s) => s.id === pick.slotId);
-    const layer = await renderSlot(geo, slot, pick.photo);
+    const layer = await renderSlot(geo, slot, pick.photo, { look });
     layers.push(layer);
     slotInfo.push({
       id: slot.id,
@@ -41,65 +42,95 @@ async function renderOne(geo, bgRef, spread, outDir, { psd = false } = {}) {
 
   const n = String(spread.index + 1).padStart(2, '0');
   const jpg = path.join(outDir, `spread-${n}.jpg`);
-  await flatten(geo, bgRef, layers, jpg);
+  await flatten(geo, bgRef, layers, jpg, { look });
   const proofFile = path.join(outDir, `spread-${n}.proof.jpg`);
   await proof(jpg, proofFile, 1400);
 
   let psdFile = null;
   if (psd) {
-    const bgLayer = await renderBackground(geo, bgRef);
+    const bgLayer = await renderBackground(geo, bgRef, { look });
     psdFile = path.join(outDir, `spread-${n}.psd`);
     await writePsd(geo, [bgLayer, ...layers], psdFile);
   }
 
   return {
     index: spread.index, jpg, proof: proofFile, psd: psdFile,
+    template: geo.id, templateLabel: geo.label,
     slots: slotInfo, ms: Math.round(performance.now() - t),
     rss: process.memoryUsage().rss,
   };
 }
 
 async function design(job) {
-  const geo = await loadTemplate(job.template);
-  const bgRef = backgroundRef(geo);
+  const look = isLook(job.look) ? job.look : 'none';
+  const primary = await loadTemplate(job.template);
+
+  // When varying, use every layout built for the same album size.
+  let geos = [primary];
+  if (job.vary) {
+    const dir = path.dirname(job.template);
+    const files = (await readdir(dir)).filter((f) => f.endsWith('.json'));
+    const all = [];
+    for (const f of files) {
+      const g = await loadTemplate(path.join(dir, f));
+      if (g.album === primary.album) all.push(g);
+    }
+    all.sort((a, b) => a.slots.length - b.slots.length);
+    if (all.length) geos = all;
+  }
+  const byId = Object.fromEntries(geos.map((g) => [g.id, g]));
+  const bgRefs = Object.fromEntries(geos.map((g) => [g.id, backgroundRef(g)]));
   await mkdir(job.outDir, { recursive: true });
 
   const names = await readdir(job.photosDir);
   const photos = await readPhotos(job.photosDir, names);
   if (!photos.length) throw new Error(`No readable images in ${job.photosDir}`);
 
-  const spreads = planAlbum(geo, photos, { maxSpreads: job.maxSpreads ?? 0 });
+  const spreads = planAlbum(geos, photos, {
+    maxSpreads: job.maxSpreads ?? 0, vary: !!job.vary,
+  });
+
+  const wire = (g) => ({
+    id: g.id, label: g.label, album: g.album, canvas: g.canvas, trim: g.trim,
+    bleed: g.bleed, dpi: g.dpi, gutter: g.gutter,
+    slots: g.slots.map((s) => ({ id: s.id, rect: s.rect, crossesGutter: s.crossesGutter })),
+  });
   send({
     type: 'plan',
     photos: photos.length,
     spreads: spreads.length,
-    template: {
-      id: geo.id, canvas: geo.canvas, trim: geo.trim,
-      bleed: geo.bleed, dpi: geo.dpi, gutter: geo.gutter,
-      slots: geo.slots.map((s) => ({ id: s.id, rect: s.rect, crossesGutter: s.crossesGutter })),
-    },
+    look,
+    layouts: geos.length,
+    templates: Object.fromEntries(geos.map((g) => [g.id, wire(g)])),
   });
 
   // Persist the plan so an export can re-render one spread without replanning.
-  await writeFile(path.join(job.outDir, 'plan.json'),
-    JSON.stringify({ template: job.template, spreads: spreads.map((s) => ({
-      index: s.index, picks: s.picks.map((p) => ({ slotId: p.slotId, photo: p.photo })),
-    })) }));
+  await writeFile(path.join(job.outDir, 'plan.json'), JSON.stringify({
+    template: job.template,
+    files: Object.fromEntries(geos.map((g) => [g.id, g.file])),
+    look,
+    spreads: spreads.map((s) => ({
+      index: s.index, templateId: s.templateId,
+      picks: s.picks.map((p) => ({ slotId: p.slotId, photo: p.photo })),
+    })),
+  }));
 
   const t0 = performance.now();
   for (const spread of spreads) {
-    send({ type: 'spread', ...(await renderOne(geo, bgRef, spread, job.outDir)) });
+    const g = byId[spread.templateId] ?? primary;
+    send({ type: 'spread', ...(await renderOne(g, bgRefs[g.id], spread, job.outDir, { look })) });
   }
   send({ type: 'done', totalMs: Math.round(performance.now() - t0), peakRss });
 }
 
 async function exportSpread(job) {
   const plan = JSON.parse(await readFile(path.join(job.outDir, 'plan.json'), 'utf8'));
-  const geo = await loadTemplate(plan.template);
-  const bgRef = backgroundRef(geo);
   const spread = plan.spreads.find((s) => s.index === job.index);
   if (!spread) throw new Error(`no spread ${job.index} in plan`);
-  const r = await renderOne(geo, bgRef, spread, job.outDir, { psd: true });
+  const file = plan.files?.[spread.templateId] ?? plan.template;
+  const geo = await loadTemplate(file);
+  const r = await renderOne(geo, backgroundRef(geo), spread, job.outDir,
+    { psd: true, look: plan.look ?? 'none' });
   send({ type: 'exported', ...r });
 }
 
@@ -131,6 +162,7 @@ async function inspectPsd(job) {
 
 async function deliver(job) {
   const plan = JSON.parse(await readFile(path.join(job.outDir, 'plan.json'), 'utf8'));
+  // Deliverables trim-crop, so use each spread's own template geometry.
   const geo = await loadTemplate(plan.template);
   const files = await findSpreads(job.outDir);
   if (!files.length) throw new Error('No rendered spreads found — design the album first.');

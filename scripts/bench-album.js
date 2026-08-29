@@ -10,7 +10,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 
 const N = Number(process.argv[2] ?? 40);
-const geo = await loadTemplate('templates/spread.classic.3up.json');
+const geo = await loadTemplate('templates/12x36.classic.3up.json');
 const bg = backgroundRef(geo);
 
 const pool = [];

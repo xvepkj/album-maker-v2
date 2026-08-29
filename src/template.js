@@ -16,6 +16,7 @@ const req = (obj, key, where) => {
 export async function loadTemplate(file) {
   const raw = JSON.parse(await readFile(file, 'utf8'));
   raw.__dir = path.dirname(path.resolve(file));
+  raw.__file = path.resolve(file);
   return resolve(raw);
 }
 
@@ -77,6 +78,9 @@ export function resolve(t) {
 
   return {
     id: t.id ?? 'untitled',
+    label: t.label ?? t.id ?? 'untitled',
+    album: t.album ?? `${t.size.h_in}x${t.size.w_in}`,
+    file: t.__file ?? null,
     dir: t.__dir ?? process.cwd(),
     dpi, bleed, safe,
     trim: { left: bleed, top: bleed, width: trimW, height: trimH },

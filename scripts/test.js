@@ -99,4 +99,100 @@ t('oversized canvas is rejected before wasting a render', () => {
   }), /30000px PSD limit/);
 });
 
+
+// ---------- async: template library + album planning ----------
+const { loadTemplate } = await import('../src/template.js');
+const { planAlbum } = await import('../src/album.js');
+const { readdir } = await import('node:fs/promises');
+
+const ta = async (name, fn) => { await fn(); console.log(`  \x1b[32m✓\x1b[0m ${name}`); pass++; };
+
+const files = (await readdir('templates')).filter((f) => f.endsWith('.json')).sort();
+const geos = [];
+for (const f of files) geos.push(await loadTemplate('templates/' + f));
+
+await ta(`all ${geos.length} templates have sane geometry`, () => {
+  for (const g of geos) {
+    for (const s of g.slots) {
+      const r = s.rect;
+      assert.ok(r.left >= 0 && r.top >= 0, `${g.id}/${s.id} negative origin`);
+      assert.ok(r.left + r.width <= g.canvas.width + 1, `${g.id}/${s.id} overruns width`);
+      assert.ok(r.top + r.height <= g.canvas.height + 1, `${g.id}/${s.id} overruns height`);
+      assert.ok(r.width > 200 && r.height > 200, `${g.id}/${s.id} degenerate`);
+    }
+  }
+});
+
+await ta('only the full-bleed layout crosses the fold', () => {
+  for (const g of geos) {
+    for (const s of g.slots) {
+      if (s.crossesGutter) assert.match(g.id, /hero\.full/, `${g.id}/${s.id} crosses the fold`);
+    }
+  }
+});
+
+await ta('slots within a template never overlap', () => {
+  for (const g of geos) {
+    for (let i = 0; i < g.slots.length; i++) {
+      for (let j = i + 1; j < g.slots.length; j++) {
+        const a = g.slots[i].rect, b = g.slots[j].rect;
+        const hit = a.left < b.left + b.width && b.left < a.left + a.width
+                 && a.top < b.top + b.height && b.top < a.top + a.height;
+        assert.ok(!hit, `${g.id}: ${g.slots[i].id} overlaps ${g.slots[j].id}`);
+      }
+    }
+  }
+});
+
+const fakePhotos = (n) => Array.from({ length: n }, (_, i) => ({
+  file: `p${i}.jpg`, name: `p${i}.jpg`, width: i % 3 ? 6000 : 4000, height: i % 3 ? 4000 : 6000,
+  focus: { x: 0.5, y: 0.4, w: 0.1, h: 0.15 },
+}));
+
+await ta('no photo is used twice in one album', () => {
+  const set = geos.filter((g) => g.album === '12x36');
+  const spreads = planAlbum(set, fakePhotos(40), { vary: true });
+  const seen = new Set();
+  for (const sp of spreads) for (const p of sp.picks) {
+    assert.ok(!seen.has(p.photo.file), `${p.photo.file} reused`);
+    seen.add(p.photo.file);
+  }
+  assert.ok(spreads.length > 3, 'expected several spreads');
+});
+
+await ta('varying never repeats a layout back to back', () => {
+  const set = geos.filter((g) => g.album === '12x36');
+  const spreads = planAlbum(set, fakePhotos(60), { vary: true });
+  for (let i = 1; i < spreads.length; i++) {
+    assert.notEqual(spreads[i].templateId, spreads[i - 1].templateId,
+      `layout repeated at spread ${i + 1}`);
+  }
+});
+
+await ta('a single template still works, and repeats', () => {
+  const one = geos.find((g) => g.id === '12x36.classic.3up');
+  const spreads = planAlbum([one], fakePhotos(12), { vary: false });
+  assert.ok(spreads.length >= 3);
+  for (const sp of spreads) assert.equal(sp.templateId, one.id);
+});
+
+await ta('every spread is completely filled', () => {
+  const set = geos.filter((g) => g.album === '12x30');
+  for (const sp of planAlbum(set, fakePhotos(50), { vary: true })) {
+    const g = set.find((x) => x.id === sp.templateId);
+    assert.equal(sp.picks.length, g.slots.length, `${sp.templateId} under-filled`);
+  }
+});
+
+await ta('every look is a valid sharp pipeline', async () => {
+  const sharp = (await import('sharp')).default;
+  const { LOOKS, applyLook } = await import('../src/filters.js');
+  const base = await sharp({ create: { width: 40, height: 40, channels: 3, background: '#8a5a3a' } })
+    .jpeg().toBuffer();
+  for (const l of LOOKS) {
+    const out = await applyLook(sharp(base), l.id).jpeg().toBuffer();
+    assert.ok(out.length > 100, `${l.id} produced nothing`);
+  }
+});
+
 console.log(`\n  ${pass} passing\n`);

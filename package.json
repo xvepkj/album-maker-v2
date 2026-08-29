@@ -14,7 +14,8 @@
     "demo": "node scripts/make-samples.js && node src/cli.js",
     "bench:album": "node scripts/bench-album.js 40",
     "bench:flatten": "node scripts/bench-flatten.js",
-    "start": "electron ."
+    "start": "electron .",
+    "templates": "node scripts/make-templates.js"
   },
   "dependencies": {
     "ag-psd": "^31.0.2",

@@ -1,0 +1,87 @@
+{
+  "id": "12x36.triptych",
+  "label": "Three verticals per page",
+  "album": "12x36",
+  "slotCount": 6,
+  "size": {
+    "w_in": 36,
+    "h_in": 12,
+    "dpi": 300,
+    "bleed_in": 0.125,
+    "safe_in": 0.25
+  },
+  "gutter": {
+    "center": 0.5,
+    "width_in": 0.94
+  },
+  "slots": [
+    {
+      "id": "a",
+      "rect": [
+        0.055,
+        0.055,
+        0.1096,
+        0.89
+      ],
+      "weight": "hero",
+      "prefer": "portrait"
+    },
+    {
+      "id": "b",
+      "rect": [
+        0.1996,
+        0.055,
+        0.1096,
+        0.89
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    },
+    {
+      "id": "c",
+      "rect": [
+        0.3443,
+        0.055,
+        0.1096,
+        0.89
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    },
+    {
+      "id": "d",
+      "rect": [
+        0.5461,
+        0.055,
+        0.1096,
+        0.89
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    },
+    {
+      "id": "e",
+      "rect": [
+        0.6907,
+        0.055,
+        0.1096,
+        0.89
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    },
+    {
+      "id": "f",
+      "rect": [
+        0.8354,
+        0.055,
+        0.1096,
+        0.89
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    }
+  ],
+  "background": "assets/bg-linen.jpg",
+  "overlays": []
+}

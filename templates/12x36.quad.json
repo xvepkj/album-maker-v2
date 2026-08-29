@@ -1,5 +1,8 @@
 {
-  "id": "spread.classic.3up",
+  "id": "12x36.quad",
+  "label": "Four up — two per page",
+  "album": "12x36",
+  "slotCount": 4,
   "size": {
     "w_in": 36,
     "h_in": 12,
@@ -15,10 +18,10 @@
     {
       "id": "a",
       "rect": [
-        0.033,
-        0.1,
-        0.427,
-        0.8
+        0.055,
+        0.055,
+        0.3989,
+        0.4275
       ],
       "weight": "hero",
       "prefer": "landscape"
@@ -26,33 +29,35 @@
     {
       "id": "b",
       "rect": [
-        0.541,
-        0.1,
-        0.203,
-        0.383
+        0.055,
+        0.5175,
+        0.3989,
+        0.4275
       ],
-      "weight": "support"
+      "weight": "support",
+      "prefer": "landscape"
     },
     {
       "id": "c",
       "rect": [
-        0.541,
-        0.517,
-        0.203,
-        0.383
+        0.5461,
+        0.055,
+        0.3989,
+        0.4275
       ],
-      "weight": "support"
+      "weight": "support",
+      "prefer": "landscape"
     },
     {
       "id": "d",
       "rect": [
-        0.766,
-        0.1,
-        0.203,
-        0.8
+        0.5461,
+        0.5175,
+        0.3989,
+        0.4275
       ],
       "weight": "support",
-      "prefer": "portrait"
+      "prefer": "landscape"
     }
   ],
   "background": "assets/bg-linen.jpg",

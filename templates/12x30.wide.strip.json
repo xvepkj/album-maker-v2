@@ -1,0 +1,83 @@
+{
+  "id": "12x30.wide.strip",
+  "label": "Wide strip over two small",
+  "album": "12x30",
+  "slotCount": 6,
+  "size": {
+    "w_in": 30,
+    "h_in": 12,
+    "dpi": 300,
+    "bleed_in": 0.125,
+    "safe_in": 0.25
+  },
+  "gutter": {
+    "center": 0.5,
+    "width_in": 0.86
+  },
+  "slots": [
+    {
+      "id": "a",
+      "rect": [
+        0.055,
+        0.055,
+        0.3977,
+        0.4275
+      ],
+      "weight": "hero",
+      "prefer": "landscape"
+    },
+    {
+      "id": "b",
+      "rect": [
+        0.055,
+        0.5175,
+        0.1813,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "c",
+      "rect": [
+        0.2713,
+        0.5175,
+        0.1813,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "d",
+      "rect": [
+        0.5473,
+        0.055,
+        0.3977,
+        0.4275
+      ],
+      "weight": "support",
+      "prefer": "landscape"
+    },
+    {
+      "id": "e",
+      "rect": [
+        0.5473,
+        0.5175,
+        0.1813,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "f",
+      "rect": [
+        0.7637,
+        0.5175,
+        0.1813,
+        0.4275
+      ],
+      "weight": "support"
+    }
+  ],
+  "background": "assets/bg-linen.jpg",
+  "overlays": []
+}

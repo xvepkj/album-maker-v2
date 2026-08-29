@@ -1,0 +1,65 @@
+{
+  "id": "12x30.accent.left",
+  "label": "Wide top, accent pair below",
+  "album": "12x30",
+  "slotCount": 4,
+  "size": {
+    "w_in": 30,
+    "h_in": 12,
+    "dpi": 300,
+    "bleed_in": 0.125,
+    "safe_in": 0.25
+  },
+  "gutter": {
+    "center": 0.5,
+    "width_in": 0.86
+  },
+  "slots": [
+    {
+      "id": "a",
+      "rect": [
+        0.055,
+        0.055,
+        0.2418,
+        0.89
+      ],
+      "weight": "hero",
+      "prefer": "portrait"
+    },
+    {
+      "id": "b",
+      "rect": [
+        0.3318,
+        0.055,
+        0.1209,
+        0.89
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    },
+    {
+      "id": "c",
+      "rect": [
+        0.5473,
+        0.055,
+        0.1209,
+        0.89
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    },
+    {
+      "id": "d",
+      "rect": [
+        0.7032,
+        0.055,
+        0.2418,
+        0.89
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    }
+  ],
+  "background": "assets/bg-linen.jpg",
+  "overlays": []
+}

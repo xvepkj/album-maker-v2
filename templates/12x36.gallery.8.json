@@ -1,0 +1,101 @@
+{
+  "id": "12x36.gallery.8",
+  "label": "Eight up — dense gallery",
+  "album": "12x36",
+  "slotCount": 8,
+  "size": {
+    "w_in": 36,
+    "h_in": 12,
+    "dpi": 300,
+    "bleed_in": 0.125,
+    "safe_in": 0.25
+  },
+  "gutter": {
+    "center": 0.5,
+    "width_in": 0.94
+  },
+  "slots": [
+    {
+      "id": "a",
+      "rect": [
+        0.055,
+        0.055,
+        0.182,
+        0.4275
+      ],
+      "weight": "hero"
+    },
+    {
+      "id": "b",
+      "rect": [
+        0.272,
+        0.055,
+        0.182,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "c",
+      "rect": [
+        0.055,
+        0.5175,
+        0.182,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "d",
+      "rect": [
+        0.272,
+        0.5175,
+        0.182,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "e",
+      "rect": [
+        0.5461,
+        0.055,
+        0.182,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "f",
+      "rect": [
+        0.763,
+        0.055,
+        0.182,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "g",
+      "rect": [
+        0.5461,
+        0.5175,
+        0.182,
+        0.4275
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "h",
+      "rect": [
+        0.763,
+        0.5175,
+        0.182,
+        0.4275
+      ],
+      "weight": "support"
+    }
+  ],
+  "background": "assets/bg-linen.jpg",
+  "overlays": []
+}

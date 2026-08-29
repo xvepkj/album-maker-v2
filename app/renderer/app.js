@@ -12,9 +12,22 @@ const mb = (b) => (b / 1048576).toFixed(0) + ' MB';
   $('photoDir').textContent = d.photosDir;
   $('photoCount').textContent = d.photoCount + ' photos';
   $('outDir').textContent = d.outDir;
-  $('template').innerHTML = d.templates
-    .map((t) => `<option value="${t.file}">${t.name}</option>`).join('');
+  // Group layouts by album size — a 12x36 and a 12x18 are different products.
+  const groups = {};
+  for (const t of d.templates) (groups[t.album] ??= []).push(t);
+  $('template').innerHTML = Object.entries(groups).map(([album, list]) =>
+    `<optgroup label="${album} in — ${list.length} layouts">` + list.map((t) =>
+      `<option value="${t.file}">${t.label} · ${t.slots} ${t.slots === 1 ? 'photo' : 'photos'}</option>`
+    ).join('') + `</optgroup>`).join('');
+  const preferred = d.templates.find((t) => t.id === '12x36.classic.3up');
+  if (preferred) $('template').value = preferred.file;
+
+  $('look').innerHTML = d.looks
+    .map((l) => `<option value="${l.id}" title="${l.note}">${l.label}</option>`).join('');
+  $('look').value = 'soft';
+
   state.photosDir = d.photosDir;
+  state.looks = Object.fromEntries(d.looks.map((l) => [l.id, l]));
 })();
 
 // ---------- controls ----------
@@ -29,6 +42,9 @@ $('pick').onclick = async () => {
 $('maxSpreads').oninput = (e) => {
   $('spreadCountLabel').textContent = e.target.value === '0' ? 'all' : e.target.value;
 };
+
+// The arrow-key handler must not fight the help overlay or a focused slider.
+
 
 $('design').onclick = () => {
   if (state.busy) return;
@@ -46,6 +62,8 @@ $('design').onclick = () => {
     photosDir: state.photosDir,
     outDir: state.outDir,
     maxSpreads: Number($('maxSpreads').value),
+    vary: $('vary').checked,
+    look: $('look').value,
   });
 };
 
@@ -87,10 +105,12 @@ document.addEventListener('keydown', (e) => {
 // ---------- events from the render service ----------
 window.api.onEvent((e) => {
   if (e.type === 'plan') {
-    state.template = e.template;
+    state.templates = e.templates;
+    state.template = Object.values(e.templates)[0];
     state.expected = e.spreads;
     $('listCount').textContent = `0 / ${e.spreads}`;
-    setStatus(`${e.photos} photos → ${e.spreads} spreads`, 'busy');
+    const look = state.looks?.[e.look]?.label ?? e.look;
+    setStatus(`${e.photos} photos → ${e.spreads} spreads · ${e.layouts} layout${e.layouts === 1 ? '' : 's'} · ${look}`, 'busy');
   }
 
   if (e.type === 'spread') {
@@ -144,8 +164,10 @@ function addCard(s) {
   li.dataset.i = state.spreads.length - 1;
   const flagged = s.slots.filter((x) => x.gutterStatus === 'moved').length;
   const bad = s.slots.some((x) => x.gutterStatus === 'unresolved');
+  const layout = (s.template ?? '').split('.').slice(1).join('.');
   li.innerHTML = `<img src="${fileUrl(s.proof)}" alt="">
-    <div class="cap"><span>${String(s.index + 1).padStart(2, '0')}</span>
+    <div class="cap"><span>${String(s.index + 1).padStart(2, '0')}
+      <span class="layout">${layout}</span></span>
     <span class="flag">${bad ? '⚠ unresolved' : flagged ? `${flagged} moved` : ''}</span></div>`;
   li.onclick = () => select(Number(li.dataset.i));
   $('list').appendChild(li);
@@ -158,6 +180,7 @@ function select(i) {
   [...$('list').children].forEach((li, n) => li.classList.toggle('sel', n === i));
   $('list').children[i]?.scrollIntoView({ block: 'nearest' });
 
+  state.template = state.templates?.[s.template] ?? state.template;
   $('empty').hidden = true; $('canvasWrap').hidden = false;
   $('preview').src = fileUrl(s.proof);
   $('exportPsd').disabled = false;
@@ -172,7 +195,7 @@ function select(i) {
       <td><span class="tag ${cls}">${x.gutterStatus}</span></td></tr>`;
   }).join('');
 
-  $('stat1').textContent = `spread ${s.index + 1} · ${(s.ms / 1000).toFixed(2)}s`;
+  $('stat1').textContent = `spread ${s.index + 1} · ${s.templateLabel ?? s.template ?? ''} · ${(s.ms / 1000).toFixed(2)}s`;
 }
 
 // ---------- guide overlay ----------
@@ -252,3 +275,66 @@ function renderPsd(p) {
   $('psdBox').innerHTML = v.join('');
   $('delivHint').textContent = 'PSD structure';
 }
+
+// ---------- tooltips ----------
+// Native `title` waits a second and looks like 2003. This is instant and styled.
+const tipEl = $('tip');
+let tipTimer = null;
+
+function showTip(el) {
+  const raw = el.dataset.tip;
+  if (!raw) return;
+  tipEl.innerHTML = raw;
+  tipEl.hidden = false;
+  const r = el.getBoundingClientRect();
+  const t = tipEl.getBoundingClientRect();
+  let left = r.left + r.width / 2 - t.width / 2;
+  left = Math.max(10, Math.min(left, innerWidth - t.width - 10));
+  // Prefer below; flip above when there is no room.
+  let top = r.bottom + 9;
+  if (top + t.height > innerHeight - 10) top = r.top - t.height - 9;
+  tipEl.style.left = left + 'px';
+  tipEl.style.top = Math.max(10, top) + 'px';
+  requestAnimationFrame(() => tipEl.classList.add('on'));
+}
+
+function hideTip() {
+  clearTimeout(tipTimer);
+  tipEl.classList.remove('on');
+  tipTimer = setTimeout(() => { tipEl.hidden = true; }, 120);
+}
+
+document.addEventListener('mouseover', (e) => {
+  const el = e.target.closest('[data-tip]');
+  if (!el) return;
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => showTip(el), 260);
+});
+document.addEventListener('mouseout', (e) => {
+  if (e.target.closest('[data-tip]')) hideTip();
+});
+document.addEventListener('mousedown', hideTip);
+
+// ---------- help overlay ----------
+const help = $('helpOverlay');
+const toggleHelp = (on) => {
+  help.hidden = on === undefined ? !help.hidden : !on;
+  if (!help.hidden) hideTip();
+};
+$('helpBtn').onclick = () => toggleHelp();
+$('helpClose').onclick = () => toggleHelp(false);
+help.onclick = (e) => { if (e.target === help) toggleHelp(false); };
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !help.hidden) { toggleHelp(false); return; }
+  const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName ?? '');
+  if (e.key === '?' && !typing) toggleHelp();
+});
+
+// Show the walkthrough once on a first run, so the vocabulary lands before use.
+try {
+  if (!localStorage.getItem('seenHelp')) {
+    toggleHelp(true);
+    localStorage.setItem('seenHelp', '1');
+  }
+} catch { /* private window, no storage — skip */ }
