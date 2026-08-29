@@ -6,8 +6,9 @@
  */
 import sharp from 'sharp';
 import { writeFile, mkdir } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
-const OUT = new URL('../samples/', import.meta.url).pathname;
+const OUT = fileURLToPath(new URL('../samples/', import.meta.url));
 
 const N = Number(process.argv[2] ?? 24);
 const ORIENT = [[6000, 4000], [6000, 4000], [4000, 6000], [6000, 4000], [5000, 5000]];

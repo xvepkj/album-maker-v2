@@ -127,7 +127,8 @@ async function runProbe() {
  */
 async function runSelfTest() {
   const { writeFile } = await import('node:fs/promises');
-  const shot = process.env.SPREAD_SELFTEST_OUT || '/tmp/spread-ui.png';
+  const { tmpdir } = await import('node:os');
+  const shot = process.env.SPREAD_SELFTEST_OUT || path.join(tmpdir(), 'spread-ui.png');
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   await new Promise((r) => win.webContents.once('did-finish-load', r));

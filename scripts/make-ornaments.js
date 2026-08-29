@@ -8,8 +8,9 @@
  */
 import sharp from 'sharp';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
-const OUT = new URL('../assets/ornaments/', import.meta.url).pathname;
+const OUT = fileURLToPath(new URL('../assets/ornaments/', import.meta.url));
 await mkdir(OUT, { recursive: true });
 
 const GOLD = '#c8a02e', GOLD_L = '#e9d08a', GOLD_D = '#9a7618';
@@ -169,7 +170,7 @@ made.push('ambi-flip');
 // ---- page background --------------------------------------------------------
 // A shipped asset, not a test fixture, so it is generated here rather than with
 // the sample photos: a packaging build needs it without making 24 throwaway JPEGs.
-const BG = new URL('../assets/', import.meta.url).pathname;
+const BG = fileURLToPath(new URL('../assets/', import.meta.url));
 await mkdir(BG, { recursive: true });
 const bgSvg = (w, h) => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
   <rect width="${w}" height="${h}" fill="#efe9df"/>

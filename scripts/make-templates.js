@@ -7,8 +7,9 @@
  * files to keep in sync.
  */
 import { writeFile, mkdir, readdir, unlink } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
-const OUT = new URL('../templates/', import.meta.url).pathname;
+const OUT = fileURLToPath(new URL('../templates/', import.meta.url));
 
 /** Album sizes, in inches. gutter_in is the binding's dead zone. */
 const SIZES = [
