@@ -1,0 +1,67 @@
+name: Build installers
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # `npm install`, not `npm ci`. The lockfile was written on macOS, so it
+      # carries darwin entries for sharp's platform-specific optional deps.
+      # `npm ci` would honour it literally and ship an app with no image
+      # backend; a fresh resolve picks @img/sharp-win32-x64 for this runner.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify the Windows image backend is present
+        shell: bash
+        run: |
+          ls node_modules/@img
+          node -e "const s=require('sharp');console.log('sharp',s.versions.sharp,'libvips',s.versions.vips)"
+
+      # templates/ is committed, but assets/ is generated — ornaments and the
+      # page background are drawn from source rather than stored as binaries.
+      - name: Generate shipped assets
+        run: |
+          node scripts/make-ornaments.js
+          node scripts/make-templates.js
+
+      - name: Test
+        run: npm test
+
+      - name: Build installer
+        run: npx electron-builder --win --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spread-engine-windows
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe
+          generate_release_notes: true
+
+  # To also build the macOS .dmg, add a second job:
+  #   macos:
+  #     runs-on: macos-14
+  #     ... same steps, with: npx electron-builder --mac --publish never
+  # It is verified working locally; it is left out only to keep CI minutes down.
