@@ -184,14 +184,33 @@ await ta('every spread is completely filled', () => {
   }
 });
 
-await ta('every look is a valid sharp pipeline', async () => {
+await ta('every look still yields 4 channels after ensureAlpha', async () => {
+  // Regression: .greyscale() switches output to the 1-band 'b-w' colourspace and
+  // ensureAlpha will not add alpha to it. The raw buffer then came back a
+  // quarter of the declared size and libvips threw "memory area too small".
   const sharp = (await import('sharp')).default;
   const { LOOKS, applyLook } = await import('../src/filters.js');
-  const base = await sharp({ create: { width: 40, height: 40, channels: 3, background: '#8a5a3a' } })
+  const base = await sharp({ create: { width: 40, height: 24, channels: 3, background: '#8a5a3a' } })
     .jpeg().toBuffer();
   for (const l of LOOKS) {
-    const out = await applyLook(sharp(base), l.id).jpeg().toBuffer();
-    assert.ok(out.length > 100, `${l.id} produced nothing`);
+    const out = await applyLook(sharp(base), l.id).ensureAlpha().raw()
+      .toBuffer({ resolveWithObject: true });
+    assert.equal(out.info.channels, 4, `${l.id} produced ${out.info.channels} channels`);
+    assert.equal(out.data.length, 40 * 24 * 4, `${l.id} buffer size mismatch`);
+  }
+});
+
+await ta('monochrome looks really are monochrome', async () => {
+  const sharp = (await import('sharp')).default;
+  const { applyLook } = await import('../src/filters.js');
+  const base = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#3a7ac8' } })
+    .jpeg().toBuffer();
+  for (const id of ['bw', 'noir']) {
+    const { data } = await applyLook(sharp(base), id).raw().toBuffer({ resolveWithObject: true });
+    for (let i = 0; i < data.length; i += 3) {
+      assert.ok(Math.abs(data[i] - data[i + 1]) <= 2 && Math.abs(data[i + 1] - data[i + 2]) <= 2,
+        `${id} left colour in the image`);
+    }
   }
 });
 

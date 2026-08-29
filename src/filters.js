@@ -5,6 +5,12 @@
  *
  * These are colour operations only — no grain, no vignette, nothing that
  * depends on output size, so a 1400px preview and a 10876px print agree.
+ *
+ * INVARIANT: every look must return a pipeline that still produces 3-channel
+ * sRGB. sharp's .greyscale() switches the output colourspace to 'b-w', and a
+ * later .ensureAlpha() will NOT add an alpha band to that — you get a
+ * 1-channel buffer while the caller still declares channels: 4, and libvips
+ * fails with "memory area too small". Monochrome looks convert back to sRGB.
  */
 
 export const LOOKS = [
@@ -40,10 +46,23 @@ const COOL = [
  * @param look one of LOOKS[].id
  * @returns the pipeline with the look applied
  */
+/**
+ * Desaturate via a Rec.709 luminance matrix rather than .greyscale().
+ * recomb() is a per-channel operation, so R=G=B comes out but the image stays
+ * three-channel — .greyscale() collapses it to one band and .toColourspace()
+ * does not undo that.
+ */
+const LUMA = [
+  [0.2126, 0.7152, 0.0722],
+  [0.2126, 0.7152, 0.0722],
+  [0.2126, 0.7152, 0.0722],
+];
+const mono = (pipe) => pipe.recomb(LUMA);
+
 export function applyLook(pipe, look) {
   switch (look) {
-    case 'bw':    return pipe.greyscale();
-    case 'noir':  return pipe.greyscale().linear(1.18, -18);
+    case 'bw':    return mono(pipe);
+    case 'noir':  return mono(pipe).linear(1.18, -18);
     case 'sepia': return pipe.recomb(SEPIA);
     case 'warm':  return pipe.recomb(WARM).modulate({ saturation: 1.04 });
     case 'cool':  return pipe.recomb(COOL);
