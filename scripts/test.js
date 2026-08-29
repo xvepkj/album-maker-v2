@@ -249,4 +249,37 @@ await ta('overlays hanging off the canvas are clipped, not rejected', async () =
   }
 });
 
+
+await ta('client proof is self-contained, in both animation modes', async () => {
+  const { buildProof } = await import('../src/deliver.js');
+  const { readdir, readFile, mkdir, rm } = await import('node:fs/promises');
+  const geo = geos.find((g) => g.id === '12x36.classic.3up');
+  const dir = 'out/.test-proof';
+  await mkdir(dir, { recursive: true });
+
+  // Any rendered spread will do; make one cheaply if none exist.
+  let src = [];
+  try {
+    src = (await readdir('out/share')).filter((f) => /^spread-\d+\.jpg$/.test(f))
+      .map((f) => 'out/share/' + f);
+  } catch { /* none */ }
+  if (!src.length) { console.log('    (skipped: no rendered spreads)'); return; }
+
+  for (const animation of ['fold', 'none']) {
+    const out = `${dir}/proof-${animation}.html`;
+    const r = await buildProof(geo, src.slice(0, 2), out, { animation, width: 400 });
+    assert.equal(r.animation, animation);
+    assert.equal(r.pages, 2);
+    const html = await readFile(out, 'utf8');
+    const refs = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
+      .map((m) => m[1]).filter((u) => !u.startsWith('data:'));
+    assert.deepEqual(refs, [], `${animation}: external references ${refs}`);
+    assert.equal((html.match(/<link/g) ?? []).length, 0, `${animation}: has a <link> tag`);
+    assert.ok(html.includes('data:image/jpeg;base64'), `${animation}: no inlined images`);
+    assert.ok(html.includes('prefers-reduced-motion'), `${animation}: ignores reduced motion`);
+    if (animation === 'fold') assert.ok(html.includes('rotateY'), 'fold mode has no page turn');
+  }
+  await rm(dir, { recursive: true, force: true });
+});
+
 console.log(`\n  ${pass} passing\n`);

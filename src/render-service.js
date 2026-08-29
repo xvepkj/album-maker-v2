@@ -176,7 +176,10 @@ async function deliver(job) {
   if (!files.length) throw new Error('No rendered spreads found — design the album first.');
 
   const onProgress = (done, total) => send({ type: 'deliver-progress', kind: job.kind, done, total });
-  const opts = { studio: job.studio, title: job.title, onProgress };
+  const opts = {
+    studio: job.studio, title: job.title, onProgress,
+    animation: job.animation === 'none' ? 'none' : 'fold',
+  };
   const out = [];
 
   if (job.kind === 'proof' || job.kind === 'both') {

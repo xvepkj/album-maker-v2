@@ -88,6 +88,7 @@ function deliverables(kind) {
   window.api.deliver({
     outDir: state.outDir, kind,
     quality: 'client',
+    animation: $('anim').checked ? 'fold' : 'none',
     title: 'Your album',
     studio: 'Spread Engine',
   });
@@ -248,8 +249,9 @@ function renderDeliverables(e) {
   $('psdBox').innerHTML = `<div class="deliv">` + state.delivered.map((d) => {
     const [name, note] = label[d.kind] ?? [d.kind, ''];
     const size = d.bytes ? ' · ' + mb(d.bytes) : '';
+    const anim = d.animation ? ' · ' + (d.animation === 'fold' ? 'page turn' : 'cross-fade') : '';
     const dims = d.inches ? ' · ' + d.inches + ' in' : '';
-    return `<div class="item"><b>${name}</b><span style="color:var(--ink3)">${note}${dims}${size}</span>
+    return `<div class="item"><b>${name}</b><span style="color:var(--ink3)">${note}${anim}${dims}${size}</span>
       <span class="meta">${d.file.split('/').pop()}</span>
       <button data-open="${d.file}">Open</button>
       <button data-reveal="${d.file}">Reveal</button></div>`;
