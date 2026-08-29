@@ -1,0 +1,28 @@
+{
+  "name": "spread-engine",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Phase 00 render spike: template JSON -> print-resolution album spread -> JPEG + layered PSD",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "samples": "node scripts/make-samples.js",
+    "test": "node scripts/test.js",
+    "render": "node src/cli.js",
+    "demo": "node scripts/make-samples.js && node src/cli.js",
+    "bench:album": "node scripts/bench-album.js 40",
+    "bench:flatten": "node scripts/bench-flatten.js",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "ag-psd": "^31.0.2",
+    "pdf-lib": "^1.17.1",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "electron": "^41.7.1"
+  },
+  "main": "app/main.js"
+}

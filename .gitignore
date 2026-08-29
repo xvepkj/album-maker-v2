@@ -1,0 +1,12 @@
+node_modules/
+out/
+
+# Generated test assets — recreate with: npm run samples
+samples/
+assets/
+
+# Real test photos (large, not ours to redistribute)
+photos/
+
+.DS_Store
+*.log

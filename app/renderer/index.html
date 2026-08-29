@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' file:; style-src 'self' 'unsafe-inline'">
+<title>Spread Engine</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="titlebar">
+  <div class="brand">Spread&nbsp;Engine <span class="phase">Phase 00 · render spike</span></div>
+  <div id="status" class="status">idle</div>
+</header>
+
+<main>
+  <aside class="sidebar">
+    <section class="controls">
+      <label class="field">
+        <span>Photos</span>
+        <button id="pick" class="picker">
+          <b id="photoDir">—</b><i id="photoCount"></i>
+        </button>
+      </label>
+
+      <label class="field">
+        <span>Template</span>
+        <select id="template"></select>
+      </label>
+
+      <label class="field">
+        <span>Spreads <i id="spreadCountLabel">all</i></span>
+        <input id="maxSpreads" type="range" min="0" max="40" value="0" step="1">
+      </label>
+
+      <button id="design" class="primary">Design album</button>
+      <div id="progress" class="progress"><div id="bar"></div></div>
+    </section>
+
+    <div class="listhead"><span>Spreads</span><i id="listCount"></i></div>
+    <ol id="list" class="list"></ol>
+  </aside>
+
+  <section class="viewer">
+    <div class="toolbar">
+      <div class="toggles">
+        <label><input type="checkbox" id="gTrim" checked> Trim &amp; bleed</label>
+        <label><input type="checkbox" id="gFold" checked> Fold</label>
+        <label><input type="checkbox" id="gSlots"> Slots</label>
+      </div>
+      <div class="actions">
+        <button id="exportPsd" disabled>Export PSD</button>
+        <span class="sep"></span>
+        <button id="mkProof" disabled title="One self-contained HTML file — email it to the couple">Client proof</button>
+        <button id="mkPdf" disabled title="One spread per page at true album size">PDF</button>
+        <span class="sep"></span>
+        <button id="reveal" disabled>Reveal</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="empty" class="empty">
+        <p>Choose a folder of photos and press <b>Design album</b>.</p>
+        <p class="dim">Spreads render at full print resolution — 10876&nbsp;×&nbsp;3676&nbsp;px at 300&nbsp;dpi — and preview here at 1400&nbsp;px.</p>
+      </div>
+      <figure id="canvasWrap" class="canvaswrap" hidden>
+        <img id="preview" alt="Selected spread">
+        <div id="overlay" class="overlay"></div>
+      </figure>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <h2>Crop decisions</h2>
+        <table class="slots">
+          <thead><tr><th>Slot</th><th>Photo</th><th>Fit</th><th>Discarded</th><th>Zoom</th><th>Fold</th></tr></thead>
+          <tbody id="slotRows"><tr class="none"><td colspan="6">No spread selected.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h2>Deliverables <i id="delivHint">for the couple</i></h2>
+        <div id="psdBox" class="psdbox"><p class="none">Design an album, then export a client proof, a PDF, or a layered PSD.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="statusbar">
+  <span id="stat1">—</span><span id="stat2"></span><span id="stat3"></span>
+  <span id="outDir" class="dim"></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

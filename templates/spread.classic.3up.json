@@ -1,0 +1,60 @@
+{
+  "id": "spread.classic.3up",
+  "size": {
+    "w_in": 36,
+    "h_in": 12,
+    "dpi": 300,
+    "bleed_in": 0.125,
+    "safe_in": 0.25
+  },
+  "gutter": {
+    "center": 0.5,
+    "width_in": 0.94
+  },
+  "slots": [
+    {
+      "id": "a",
+      "rect": [
+        0.033,
+        0.1,
+        0.427,
+        0.8
+      ],
+      "weight": "hero",
+      "prefer": "landscape"
+    },
+    {
+      "id": "b",
+      "rect": [
+        0.541,
+        0.1,
+        0.203,
+        0.383
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "c",
+      "rect": [
+        0.541,
+        0.517,
+        0.203,
+        0.383
+      ],
+      "weight": "support"
+    },
+    {
+      "id": "d",
+      "rect": [
+        0.766,
+        0.1,
+        0.203,
+        0.8
+      ],
+      "weight": "support",
+      "prefer": "portrait"
+    }
+  ],
+  "background": "assets/bg-linen.jpg",
+  "overlays": []
+}
