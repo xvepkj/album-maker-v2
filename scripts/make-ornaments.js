@@ -166,5 +166,23 @@ for (const base of ['jali', 'garland']) {
 await sharp(`${OUT}ambi.png`).flop().png().toFile(`${OUT}ambi-flip.png`);
 made.push('ambi-flip');
 
-console.log('  ' + made.length + ' ornaments -> assets/ornaments/');
+// ---- page background --------------------------------------------------------
+// A shipped asset, not a test fixture, so it is generated here rather than with
+// the sample photos: a packaging build needs it without making 24 throwaway JPEGs.
+const BG = new URL('../assets/', import.meta.url).pathname;
+await mkdir(BG, { recursive: true });
+const bgSvg = (w, h) => `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+  <rect width="${w}" height="${h}" fill="#efe9df"/>
+  <g stroke="#e2d9cb" stroke-width="3">
+    ${Array.from({ length: 220 }, (_, i) =>
+      `<line x1="${i * 60}" y1="0" x2="${i * 60 - h}" y2="${h}"/>`).join('')}
+  </g>
+  <g stroke="#e7dfd2" stroke-width="2">
+    ${Array.from({ length: 90 }, (_, i) =>
+      `<line x1="0" y1="${i * 46}" x2="${w}" y2="${i * 46}"/>`).join('')}
+  </g>
+</svg>`;
+await sharp(Buffer.from(bgSvg(12000, 4200))).jpeg({ quality: 86 }).toFile(`${BG}bg-linen.jpg`);
+
+console.log('  ' + made.length + ' ornaments + bg-linen.jpg -> assets/');
 for (const m of made) console.log('    ' + m + '.png');

@@ -79,7 +79,4 @@ for (const f of FRAMES) {
   console.log(`  photo-${f.n}.jpg  ${f.w}x${f.h}  focus ${f.focus.x},${f.focus.y}  (${f.label})`);
 }
 
-const ASSETS = new URL('../assets/', import.meta.url).pathname;
-await mkdir(ASSETS, { recursive: true });
-await sharp(Buffer.from(bgSvg(12000, 4200))).jpeg({ quality: 86 }).toFile(`${ASSETS}bg-linen.jpg`);
-console.log('  bg-linen.jpg  12000x4200');
+// The page background lives with the ornaments — see scripts/make-ornaments.js.

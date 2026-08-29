@@ -15,10 +15,39 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import readline from 'node:readline';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/** Code root. Packaged this is inside app.asar; in dev it is the repo. */
 const ROOT = path.resolve(__dirname, '..');
 
-/** The system node binary — npm sets this when launched via `npm start`. */
-const NODE_BIN = process.env.npm_node_execpath || process.env.SPREAD_NODE || 'node';
+/**
+ * Where templates and ornaments live. They ship as extraResources rather than
+ * inside asar, so sharp can read them as ordinary files and a studio can drop
+ * its own templates in beside them.
+ */
+const RES = () => (app.isPackaged ? process.resourcesPath : ROOT);
+
+/**
+ * The render service runs as a child process.
+ *  - dev: the system node binary
+ *  - packaged: Electron itself in Node mode. There is no system node to rely on,
+ *    and only Electron can read src/ from inside app.asar. sharp's prebuilds are
+ *    Node-API v9, which is ABI-stable across both, so nothing needs rebuilding.
+ */
+function serviceCommand() {
+  if (app.isPackaged) {
+    return { bin: process.execPath, runAsNode: true };
+  }
+  return {
+    bin: process.env.SPREAD_NODE || process.env.npm_node_execpath || 'node',
+    runAsNode: false,
+  };
+}
+
+/** Somewhere writable. An app bundle is read-only, and on macOS it is signed. */
+const defaultOutDir = () =>
+  app.isPackaged
+    ? path.join(app.getPath('pictures'), 'Spread Engine')
+    : path.join(ROOT, 'out', 'app');
 
 let win = null;
 let service = null;
@@ -26,10 +55,15 @@ const selfTestHooks = [];
 
 function startService() {
   if (service && !service.killed) return service;
-  service = spawn(NODE_BIN, [path.join(ROOT, 'src', 'render-service.js')], {
-    cwd: ROOT,
+  const { bin, runAsNode } = serviceCommand();
+  const env = { ...process.env };
+  if (runAsNode) env.ELECTRON_RUN_AS_NODE = '1';
+  else delete env.ELECTRON_RUN_AS_NODE;
+
+  service = spawn(bin, [path.join(ROOT, 'src', 'render-service.js')], {
+    cwd: RES(),
     stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+    env,
   });
   readline.createInterface({ input: service.stdout }).on('line', (line) => {
     if (!line.trim()) return;
@@ -182,12 +216,22 @@ ipcMain.handle('pick-folder', async () => {
 });
 
 ipcMain.handle('defaults', async () => {
-  // Prefer real photos when they are present; fall back to generated samples.
-  const real = path.join(ROOT, 'photos');
-  const samples = existsSync(real) ? real : path.join(ROOT, 'samples');
-  const files = existsSync(samples)
-    ? (await readdir(samples)).filter((f) => /\.(jpe?g|png)$/i.test(f)) : [];
-  const tdir = path.join(ROOT, 'templates');
+  // Dev: the repo's photos/ then samples/. Packaged: the user's Pictures folder,
+  // which is only a starting point — they pick a real shoot folder.
+  // SPREAD_PHOTOS lets you launch pointed at a folder — handy for a demo
+  // machine, and it is what the selftest uses against a packaged build.
+  const override = process.env.SPREAD_PHOTOS || process.env.SPREAD_SELFTEST_PHOTOS;
+  const candidates = override
+    ? [override]
+    : app.isPackaged
+      ? [app.getPath('pictures')]
+      : [path.join(ROOT, 'photos'), path.join(ROOT, 'samples'), app.getPath('pictures')];
+  const samples = candidates.find((d) => existsSync(d)) ?? app.getPath('pictures');
+  let files = [];
+  try {
+    files = (await readdir(samples)).filter((f) => /\.(jpe?g|png|tiff?|webp)$/i.test(f));
+  } catch { /* unreadable, leave empty */ }
+  const tdir = path.join(RES(), 'templates');
   const { readFile } = await import('node:fs/promises');
   const templates = [];
   for (const f of (await readdir(tdir)).filter((x) => x.endsWith('.json'))) {
@@ -208,7 +252,7 @@ ipcMain.handle('defaults', async () => {
   const { DECORS } = await import(pathToFileURL(path.join(ROOT, 'src', 'decor.js')).href);
   return {
     photosDir: samples, photoCount: files.length,
-    outDir: path.join(ROOT, 'out', 'app'), templates, looks: LOOKS, decors: DECORS,
+    outDir: defaultOutDir(), templates, looks: LOOKS, decors: DECORS,
   };
 });
 

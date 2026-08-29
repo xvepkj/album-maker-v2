@@ -1,9 +1,9 @@
 {
   "name": "spread-engine",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Phase 00 render spike: template JSON -> print-resolution album spread -> JPEG + layered PSD",
+  "description": "Wedding album designer \u2014 print-resolution spreads, layered PSD, client proofs",
   "engines": {
     "node": ">=18.17"
   },
@@ -17,7 +17,10 @@
     "start": "electron .",
     "templates": "node scripts/make-templates.js",
     "ornaments": "node scripts/make-ornaments.js",
-    "assets": "node scripts/make-samples.js && node scripts/make-ornaments.js && node scripts/make-templates.js"
+    "assets": "node scripts/make-samples.js && node scripts/make-ornaments.js && node scripts/make-templates.js",
+    "pack": "electron-builder --dir",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win"
   },
   "dependencies": {
     "ag-psd": "^31.0.2",
@@ -25,7 +28,71 @@
     "sharp": "^0.33.5"
   },
   "devDependencies": {
-    "electron": "^41.7.1"
+    "electron": "^41.7.1",
+    "electron-builder": "^24.13.3"
   },
-  "main": "app/main.js"
+  "main": "app/main.js",
+  "author": {
+    "name": "Spread Engine"
+  },
+  "build": {
+    "appId": "in.spreadengine.app",
+    "productName": "Spread Engine",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "app/**/*",
+      "src/**/*",
+      "package.json",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "templates",
+        "to": "templates"
+      },
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ],
+    "asarUnpack": [
+      "**/node_modules/sharp/**",
+      "**/node_modules/@img/**"
+    ],
+    "npmRebuild": false,
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.graphics-design",
+      "icon": "build/icon.png",
+      "identity": null,
+      "hardenedRuntime": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Spread Engine"
+    }
+  }
 }

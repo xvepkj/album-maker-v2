@@ -7,6 +7,34 @@ Answers one question before any UI exists:
 
 **Yes.** 40 spreads at 10876×3676px render in ~40s with memory bounded around 1 GB.
 
+## Install (packaged app)
+
+Windows installers are built by CI on every push to `main`:
+**Actions → Build installers → latest run → Artifacts → `spread-engine-windows`.**
+Tagging a release (`git tag v0.1.0 && git push --tags`) attaches the `.exe` to a
+GitHub Release instead.
+
+macOS builds locally with `npm run dist:mac` (verified working; left out of CI
+only to keep minutes down). It is unsigned, so first launch needs
+right-click → Open.
+
+The packaged app carries its own Node runtime — no install prerequisites. It
+writes albums to **Pictures/Spread Engine**, and reads templates and ornaments
+from the app's Resources folder, so a studio can drop extra templates in beside
+the shipped ones.
+
+### Packaging notes
+
+- sharp ships **Node-API v9** prebuilds, which are ABI-stable across Node and
+  Electron, so `npmRebuild` is off — there is nothing to rebuild, and rebuilding
+  would only risk breaking a working binary.
+- Its native `.node`/`.dylib` files cannot be loaded from inside `asar`, so
+  `@img/**` and `sharp/**` are unpacked.
+- In development the render service runs on the system `node`; packaged, it runs
+  on Electron itself via `ELECTRON_RUN_AS_NODE`, because there is no system node
+  to rely on and only Electron can read `src/` from inside `asar`.
+- `SPREAD_PHOTOS=/path/to/folder` launches the app pointed at a folder.
+
 ## Run it
 
 ```bash
