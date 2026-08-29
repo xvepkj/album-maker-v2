@@ -43,6 +43,19 @@ npm run bench:album   # 40-spread memory trace
 | Crop decisions | per slot: aspect fit, % discarded, punch-in, fold status |
 | PSD inspector | layer bounds, colour mode, DPI and guides, **read back from the written file** |
 
+### Client deliverables
+
+| output | what it is |
+|---|---|
+| `client-proof.html` | **one self-contained file.** Every spread inlined as a data URI — email it, AirDrop it, put it on a USB stick. Opens on any phone or browser with no server and no internet. Arrow keys or swipe. |
+| `album-<quality>.pdf` | one spread per page at the album's true physical size (36×12 in), trim-cropped |
+| `spread-NN.psd` | layered, for a designer to finish by hand |
+| `spread-NN.jpg` | full-resolution flattened spread, bleed included, for the lab |
+
+Client-facing outputs are **trim-cropped**: bleed is printer's margin that gets
+guillotined off, so showing it to a couple means showing them 3 mm of image that
+will not exist in their album.
+
 The PSD inspector exists because you should not need Photoshop to check the
 writer is correct. It parses the actual bytes on disk and shows what is in them.
 

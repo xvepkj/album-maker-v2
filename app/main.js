@@ -91,7 +91,7 @@ async function runSelfTest() {
   sendJob({
     cmd: 'design',
     template: path.join(ROOT, 'templates', 'spread.classic.3up.json'),
-    photosDir: path.join(ROOT, 'samples'),
+    photosDir: process.env.SPREAD_SELFTEST_PHOTOS || path.join(ROOT, 'samples'),
     outDir: path.join(ROOT, 'out', 'app'),
     maxSpreads: 6,
   });
@@ -110,8 +110,24 @@ async function runSelfTest() {
   const shot2 = shot.replace(/\.png$/, '-psd.png');
   await writeFile(shot2, (await win.webContents.capturePage()).toPNG());
 
+  // Phase 3: build the client deliverables and confirm the panel lists them.
+  const deliveredP = new Promise((resolve) => {
+    selfTestHooks.push((p) => { if (p.type === 'delivered' || p.type === 'error') resolve(p); });
+  });
+  await win.webContents.executeJavaScript("document.getElementById('mkProof').click()");
+  const delivered = await deliveredP;
+  await wait(400);
+  const deliveredPdf = new Promise((resolve) => {
+    selfTestHooks.push((p) => { if (p.type === 'delivered' || p.type === 'error') resolve(p); });
+  });
+  await win.webContents.executeJavaScript("document.getElementById('mkPdf').click()");
+  await deliveredPdf;
+  await wait(1000);
+  const shot3 = shot.replace(/\.png$/, '-deliver.png');
+  await writeFile(shot3, (await win.webContents.capturePage()).toPNG());
+
   console.log('SELFTEST ' + JSON.stringify({
-    shot, shot2, result,
+    shot, shot2, shot3, delivered: delivered.outputs ?? delivered, result,
     psd: psd.type === 'psd'
       ? { layers: psd.layers?.length, guides: psd.guides?.length, res: psd.resolution,
           size: psd.width + 'x' + psd.height, bytes: psd.bytes }
@@ -134,7 +150,9 @@ ipcMain.handle('pick-folder', async () => {
 });
 
 ipcMain.handle('defaults', async () => {
-  const samples = path.join(ROOT, 'samples');
+  // Prefer real photos when they are present; fall back to generated samples.
+  const real = path.join(ROOT, 'photos');
+  const samples = existsSync(real) ? real : path.join(ROOT, 'samples');
   const files = existsSync(samples)
     ? (await readdir(samples)).filter((f) => /\.(jpe?g|png)$/i.test(f)) : [];
   const tdir = path.join(ROOT, 'templates');
