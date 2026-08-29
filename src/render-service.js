@@ -11,17 +11,18 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { loadTemplate } from './template.js';
 import { readPhotos, planAlbum } from './album.js';
-import { backgroundRef, renderSlot, renderBackground, flatten, proof } from './compose.js';
+import { backgroundRef, renderSlot, renderBackground, renderOverlay, flatten, proof } from './compose.js';
 import { writePsd } from './psd.js';
 import { findSpreads, buildProof, buildPdf } from './deliver.js';
 import { LOOKS, isLook } from './filters.js';
+import { decorOverlays, isDecor } from './decor.js';
 
 const send = (o) => process.stdout.write(JSON.stringify(o) + '\n');
 
 let peakRss = 0;
 setInterval(() => { peakRss = Math.max(peakRss, process.memoryUsage().rss); }, 40).unref();
 
-async function renderOne(geo, bgRef, spread, outDir, { psd = false, look = 'none' } = {}) {
+async function renderOne(geo, bgRef, spread, outDir, { psd = false, look = 'none', decor = 'none' } = {}) {
   const t = performance.now();
   const layers = [];
   const slotInfo = [];
@@ -38,6 +39,12 @@ async function renderOne(geo, bgRef, spread, outDir, { psd = false, look = 'none
       zoomPct: layer.crop.zoomPct,
       gutterStatus: layer.crop.gutterStatus,
     });
+  }
+
+  // Ornaments composite above every photo.
+  for (const ov of [...geo.overlays, ...decorOverlays(decor, geo)]) {
+    const l = await renderOverlay(geo, ov);
+    if (l) layers.push(l);
   }
 
   const n = String(spread.index + 1).padStart(2, '0');
@@ -63,6 +70,7 @@ async function renderOne(geo, bgRef, spread, outDir, { psd = false, look = 'none
 
 async function design(job) {
   const look = isLook(job.look) ? job.look : 'none';
+  const decor = isDecor(job.decor) ? job.decor : 'none';
   const primary = await loadTemplate(job.template);
 
   // When varying, use every layout built for the same album size.
@@ -99,7 +107,7 @@ async function design(job) {
     type: 'plan',
     photos: photos.length,
     spreads: spreads.length,
-    look,
+    look, decor,
     layouts: geos.length,
     templates: Object.fromEntries(geos.map((g) => [g.id, wire(g)])),
   });
@@ -108,7 +116,7 @@ async function design(job) {
   await writeFile(path.join(job.outDir, 'plan.json'), JSON.stringify({
     template: job.template,
     files: Object.fromEntries(geos.map((g) => [g.id, g.file])),
-    look,
+    look, decor,
     spreads: spreads.map((s) => ({
       index: s.index, templateId: s.templateId,
       picks: s.picks.map((p) => ({ slotId: p.slotId, photo: p.photo })),
@@ -118,7 +126,7 @@ async function design(job) {
   const t0 = performance.now();
   for (const spread of spreads) {
     const g = byId[spread.templateId] ?? primary;
-    send({ type: 'spread', ...(await renderOne(g, bgRefs[g.id], spread, job.outDir, { look })) });
+    send({ type: 'spread', ...(await renderOne(g, bgRefs[g.id], spread, job.outDir, { look, decor })) });
   }
   send({ type: 'done', totalMs: Math.round(performance.now() - t0), peakRss });
 }
@@ -130,7 +138,7 @@ async function exportSpread(job) {
   const file = plan.files?.[spread.templateId] ?? plan.template;
   const geo = await loadTemplate(file);
   const r = await renderOne(geo, backgroundRef(geo), spread, job.outDir,
-    { psd: true, look: plan.look ?? 'none' });
+    { psd: true, look: plan.look ?? 'none', decor: plan.decor ?? 'none' });
   send({ type: 'exported', ...r });
 }
 

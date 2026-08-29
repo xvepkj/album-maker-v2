@@ -72,17 +72,45 @@ export async function renderBackground(geo, ref = backgroundRef(geo), { look = '
   return { name: 'background', left: 0, top: 0, width, height, data, blend: 'over' };
 }
 
+/**
+ * Ornament layer. Two things the slot path does not need:
+ *  - overlays may hang off the canvas on purpose (a mandala bleeding past the
+ *    edge), so the rect is clipped and the asset cropped to match;
+ *  - they carry an opacity, applied by scaling the alpha channel.
+ */
 export async function renderOverlay(geo, ov) {
-  const file = path.resolve(geo.dir, '..', ov.asset);
+  const file = path.isAbsolute(ov.asset) ? ov.asset : path.resolve(geo.dir, '..', ov.asset);
   if (!existsSync(file)) return null;
-  const data = await sharp(file)
-    .resize(ov.rect.width, ov.rect.height, { fit: 'fill' })
-    .ensureAlpha().raw().toBuffer();
+
+  const { width: cw, height: ch } = geo.canvas;
+  const { left, top, width, height } = ov.rect;
+  if (width < 1 || height < 1) return null;
+
+  // Portion of the overlay that actually lands on the canvas.
+  const cropL = Math.max(0, -left);
+  const cropT = Math.max(0, -top);
+  const outL = Math.max(0, left);
+  const outT = Math.max(0, top);
+  const visW = Math.min(width - cropL, cw - outL);
+  const visH = Math.min(height - cropT, ch - outT);
+  if (visW < 1 || visH < 1) return null;
+
+  let pipe = sharp(file).resize(width, height, { fit: 'fill' });
+  if (cropL || cropT || visW !== width || visH !== height) {
+    pipe = pipe.extract({ left: cropL, top: cropT, width: visW, height: visH });
+  }
+
+  const data = await pipe.ensureAlpha().raw().toBuffer();
+
+  const opacity = ov.opacity ?? 1;
+  if (opacity < 1) {
+    for (let i = 3; i < data.length; i += 4) data[i] = (data[i] * opacity) | 0;
+  }
+
   return {
-    name: `overlay · ${path.basename(ov.asset)}`,
-    left: ov.rect.left, top: ov.rect.top,
-    width: ov.rect.width, height: ov.rect.height,
-    data, blend: ov.blend,
+    name: `overlay · ${path.basename(file, '.png')}`,
+    left: outL, top: outT, width: visW, height: visH,
+    data, blend: ov.blend ?? 'over',
   };
 }
 

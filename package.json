@@ -15,7 +15,9 @@
     "bench:album": "node scripts/bench-album.js 40",
     "bench:flatten": "node scripts/bench-flatten.js",
     "start": "electron .",
-    "templates": "node scripts/make-templates.js"
+    "templates": "node scripts/make-templates.js",
+    "ornaments": "node scripts/make-ornaments.js",
+    "assets": "node scripts/make-samples.js && node scripts/make-ornaments.js && node scripts/make-templates.js"
   },
   "dependencies": {
     "ag-psd": "^31.0.2",

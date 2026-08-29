@@ -11,7 +11,7 @@ Answers one question before any UI exists:
 
 ```bash
 npm install
-npm run samples       # generate 24 synthetic test photos (first run only)
+npm run assets        # generate test photos, ornaments and templates (first run only)
 npm start             # <- the app
 ```
 
@@ -97,6 +97,25 @@ Outputs land in `out/`:
 
 Add one by appending to `LAYOUTS` in `scripts/make-templates.js` — it is emitted
 for every album size automatically.
+
+**8 decoration themes** — gold ornamentation composited over the spread:
+
+| theme | what it puts on the page |
+|---|---|
+| Floral corners | vine and blossom in all four corners |
+| Marigold garland | strung marigolds across the top, flourish below |
+| Jali border | lattice arches along both long edges |
+| Mandala | a large mandala bleeding off each outer edge |
+| Ambi / paisley | mirrored paisley at opposite corners |
+| Petal scatter | loose petals drifting across the corners |
+| Royal frame | gold rule frame with corner florals |
+
+Ornaments are **drawn procedurally as SVG** by `npm run ornaments` and rasterised
+to PNG with alpha — ours to ship, nothing to license, and regenerable at any
+resolution. Motifs come from Indian wedding vernacular: marigold, mandala, ambi,
+jali. Placement is expressed against the *trim* box, so a motif still lands
+correctly if the bleed changes, and an overlay may hang off the canvas on
+purpose (the mandala does) — it gets clipped, not dropped.
 
 **9 looks** — Original, Soft, Warm, Cool, Vivid, Faded matte, Sepia, Black & white,
 Noir. Applied to every photo *and* the page background so a spread reads as one

@@ -68,7 +68,23 @@ app.whenReady().then(() => {
   createWindow();
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) createWindow(); });
   if (process.env.SPREAD_SELFTEST) runSelfTest();
+  if (process.env.SPREAD_PROBE) runProbe();
 });
+
+/** Minimal DOM probe: does the decor <select> actually reflect what we set? */
+async function runProbe() {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  await new Promise((r) => win.webContents.once('did-finish-load', r));
+  await wait(1500);
+  const out = await win.webContents.executeJavaScript(`(() => {
+    const s = document.getElementById('decor');
+    s.value = 'royal';
+    return { options: s.options.length, value: s.value,
+             shown: s.options[s.selectedIndex]?.text, index: s.selectedIndex };
+  })()`);
+  console.log('PROBE ' + JSON.stringify(out));
+  app.quit();
+}
 
 /**
  * Headless verification. Electron captures its own window internally, which
@@ -105,6 +121,7 @@ async function runSelfTest() {
   await win.webContents.executeJavaScript(`(() => {
     const m = document.getElementById('maxSpreads');
     m.value = '6'; m.dispatchEvent(new Event('input'));
+    document.getElementById('decor').value = 'royal';
     document.getElementById('design').click();
   })()`);
 
@@ -188,9 +205,10 @@ ipcMain.handle('defaults', async () => {
   templates.sort((a, b) => a.album.localeCompare(b.album) || a.slots - b.slots);
 
   const { LOOKS } = await import(pathToFileURL(path.join(ROOT, 'src', 'filters.js')).href);
+  const { DECORS } = await import(pathToFileURL(path.join(ROOT, 'src', 'decor.js')).href);
   return {
     photosDir: samples, photoCount: files.length,
-    outDir: path.join(ROOT, 'out', 'app'), templates, looks: LOOKS,
+    outDir: path.join(ROOT, 'out', 'app'), templates, looks: LOOKS, decors: DECORS,
   };
 });
 

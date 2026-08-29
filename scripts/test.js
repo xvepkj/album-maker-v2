@@ -214,4 +214,39 @@ await ta('monochrome looks really are monochrome', async () => {
   }
 });
 
+
+await ta('every decoration theme lands on the canvas', async () => {
+  const { DECORS, decorOverlays } = await import('../src/decor.js');
+  const { existsSync } = await import('node:fs');
+  for (const g of geos) {
+    for (const d of DECORS) {
+      for (const ov of decorOverlays(d.id, g)) {
+        assert.ok(existsSync(ov.asset), `${d.id}: missing asset ${ov.asset}`);
+        assert.ok(ov.rect.width > 0 && ov.rect.height > 0, `${d.id}: degenerate rect`);
+        // May hang off the edge on purpose, but must intersect the canvas.
+        const r = ov.rect;
+        assert.ok(r.left < g.canvas.width && r.top < g.canvas.height
+               && r.left + r.width > 0 && r.top + r.height > 0,
+          `${d.id} on ${g.id}: overlay entirely off-canvas`);
+        assert.ok(ov.opacity > 0 && ov.opacity <= 1, `${d.id}: bad opacity`);
+      }
+    }
+  }
+});
+
+await ta('overlays hanging off the canvas are clipped, not rejected', async () => {
+  const { renderOverlay } = await import('../src/compose.js');
+  const g = geos.find((x) => x.id === '12x36.classic.3up');
+  const { decorOverlays } = await import('../src/decor.js');
+  const bleeding = decorOverlays('mandala', g);
+  assert.ok(bleeding.some((o) => o.rect.left < 0), 'expected a deliberately off-canvas overlay');
+  for (const ov of bleeding) {
+    const l = await renderOverlay(g, ov);
+    assert.ok(l, 'overlay was dropped');
+    assert.ok(l.left >= 0 && l.top >= 0, 'clipped overlay still has a negative origin');
+    assert.ok(l.left + l.width <= g.canvas.width, 'clipped overlay overruns the canvas');
+    assert.equal(l.data.length, l.width * l.height * 4, 'buffer does not match declared size');
+  }
+});
+
 console.log(`\n  ${pass} passing\n`);

@@ -26,6 +26,11 @@ const mb = (b) => (b / 1048576).toFixed(0) + ' MB';
     .map((l) => `<option value="${l.id}" title="${l.note}">${l.label}</option>`).join('');
   $('look').value = 'soft';
 
+  $('decor').innerHTML = d.decors
+    .map((x) => `<option value="${x.id}" title="${x.note}">${x.label}</option>`).join('');
+  $('decor').value = 'none';
+  state.decors = Object.fromEntries(d.decors.map((x) => [x.id, x]));
+
   state.photosDir = d.photosDir;
   state.looks = Object.fromEntries(d.looks.map((l) => [l.id, l]));
 })();
@@ -64,6 +69,7 @@ $('design').onclick = () => {
     maxSpreads: Number($('maxSpreads').value),
     vary: $('vary').checked,
     look: $('look').value,
+    decor: $('decor').value,
   });
 };
 
@@ -110,7 +116,8 @@ window.api.onEvent((e) => {
     state.expected = e.spreads;
     $('listCount').textContent = `0 / ${e.spreads}`;
     const look = state.looks?.[e.look]?.label ?? e.look;
-    setStatus(`${e.photos} photos → ${e.spreads} spreads · ${e.layouts} layout${e.layouts === 1 ? '' : 's'} · ${look}`, 'busy');
+    const dec = e.decor && e.decor !== 'none' ? ` · ${state.decors?.[e.decor]?.label ?? e.decor}` : '';
+    setStatus(`${e.photos} photos → ${e.spreads} spreads · ${e.layouts} layout${e.layouts === 1 ? '' : 's'} · ${look}${dec}`, 'busy');
   }
 
   if (e.type === 'spread') {
