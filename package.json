@@ -25,10 +25,10 @@
   "dependencies": {
     "ag-psd": "^31.0.2",
     "pdf-lib": "^1.17.1",
-    "sharp": "^0.33.5"
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
-    "electron": "^41.7.1",
+    "electron": "^41.10.6",
     "electron-builder": "^24.13.3"
   },
   "main": "app/main.js",
